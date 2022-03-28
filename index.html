@@ -1,0 +1,111 @@
+<!doctype html>
+
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" type="text/css" href="styles.css"/>
+        <title>Ocean</title>
+    </head>
+    <body>
+        <div class="text-box">
+            <div class="heading">Today's lost are conquerors tomorrow.</div>
+            <div class="button-wrapper">
+                <div class="button">Learn More</div>
+                <div class="button">Contact Us</div>
+            </div>
+        </div>
+
+        <script src="three.min.js"></script>
+        <script src="Water.js"></script>
+        <script>
+            let camera, water, scene, renderer;
+
+            function init(){
+
+                //setup the renderer
+                renderer = new THREE.WebGLRenderer();
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.setSize(window.innerWidth, window.innerHeight);
+
+                renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                document.body.appendChild(renderer.domElement);
+
+                //cubemap
+				const urls = [
+					'MilkyWay/dark-s_px.jpg', 'MilkyWay/dark-s_nx.jpg',
+					'MilkyWay/dark-s_py.jpg', 'MilkyWay/dark-s_ny.jpg',
+					'MilkyWay/dark-s_pz.jpg', 'MilkyWay/dark-s_nz.jpg'
+				];
+
+                const reflectionCube = new THREE.CubeTextureLoader().load( urls );
+                const refractionCube  = new THREE.CubeTextureLoader().load( urls );
+                refractionCube.mapping = THREE.CubeRefractionMapping;
+
+                //setup scene and camera
+                scene  = new THREE.Scene();
+                scene.background = reflectionCube;
+				scene.fog = new THREE.Fog( 0x0a0aff, 1000, 10000 );
+
+                camera = new THREE.PerspectiveCamera(77, window.innerWidth / window.innerHeight, 1, 10000);
+                camera.position.set(50, 80, -80)
+
+				const dirLight = new THREE.DirectionalLight( 0xffeedd, 100 );
+				dirLight.position.set( 450, 100, -100);
+				dirLight.position.multiplyScalar( 30 );
+				scene.add( dirLight );
+
+				dirLight.castShadow = true;
+
+
+                // add moon
+                const geometry = new THREE.SphereGeometry( 100, 64, 32 );
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0x0a0a0a,
+                    roughness: 0.23,
+                    side: THREE.DoubleSide
+                });
+
+                const sphere = new THREE.Mesh( geometry, material );
+
+                sphere.position.set(0, 500, -1000);
+                scene.add( sphere );
+
+
+                const watergeo = new THREE.PlaneGeometry( 10000, 10000 );
+                
+                water = new THREE.Water(
+					watergeo,
+					{
+						textureWidth: 512,
+						textureHeight: 512,
+						waterNormals: new THREE.TextureLoader().load( 'Water_2_M_Normal.jpg', function ( texture ) {
+
+							texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+
+						} ),
+						sunColor: 0xffffff,
+						waterColor: 0x001e0f,
+						distortionScale: 3.7,
+						fog: scene.fog
+					}
+				);
+
+				water.rotation.x = - Math.PI / 2;
+
+				scene.add( water );
+
+            }
+
+            function render(){
+                const time = performance.now() * 0.001;
+                water.material.uniforms[ 'time' ].value += 1.0 / 60.0;
+                renderer.render(scene, camera);
+                requestAnimationFrame(render);
+            }
+
+            init();
+            render();
+        </script>
+    </body>
+</html>
